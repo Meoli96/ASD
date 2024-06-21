@@ -27,8 +27,7 @@ class Wheel(Device):
         self.control = con_fun
         self.Is = 0.5*mass*radius**2
         self.It = 0.25*mass*radius**2 
-        ### !!! Here we are assuming a cylinder for the wheel, and the inertia is calculated in the wheel frame
-        # For the sake of the exercise, wheel frame and body frame have the same orientation, but NOT IN GENERAL
+        
         self.Sp = mass * self.rd
         self.Iw = np.array([[self.Is, 0, 0], [0, self.It, 0], [0, 0, self.It]])  + self.mass * (self.b@self.b.T - np.outer(self.b, self.b))
     
@@ -142,7 +141,7 @@ class Craft:
         # Inertia matrix
         I = self.Is_const # Inertia matrix -- constant term
         
-        # Add dampers static moemnta and inertia
+        # Add dampers static momenta and inertia
         if self.dampers:
             for damper in self.dampers:
                 rd = damper.b + damper.axis * chi0[damper.id]
@@ -187,9 +186,9 @@ class Craft:
         '''
         S_temp = self.Ss_const
         I_temp = self.Is_const
-
-        Sdot_temp = np.zeros((3,1))
-        Idot_temp = np.zeros((3,3))
+        if self.dampers:
+            Sdot_temp = np.zeros((3,1))
+            Idot_temp = np.zeros((3,3))
         # Assuming chi[0] is of self.dampers[0]
         
         for i in range(len(self.dampers)):
