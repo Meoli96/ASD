@@ -21,6 +21,9 @@ class Quat:
     
 
 def skew(vec: np.ndarray) -> np.ndarray:
+    # Convert vec to one dimenion
+    vec = vec.reshape(3)
+    # return the skew-symmetric matrix of vec
     return np.array([[0, -vec[2], vec[1]],
                      [vec[2], 0, -vec[0]],
                      [-vec[1], vec[0], 0]])
