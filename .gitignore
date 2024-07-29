@@ -1,1 +1,3 @@
 .venv/
+# Remove all pycache files  
+__pycache__/

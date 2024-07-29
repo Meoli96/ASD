@@ -7,9 +7,10 @@ class Body:
     pass
 
 class Body:
-    def __init__(self, id, mass_center, frame: np.ndarray, mass, inertia: np.ndarray):
+    
+    def __init__(self, bid, mass_center, frame: np.ndarray, mass, inertia: np.ndarray):
         # Ancillary data
-        self.id = id
+        self.id = bid
 
         # Physical data
         self.mass = mass
@@ -19,34 +20,37 @@ class Body:
         self.frame = frame
 
         
-        # Parent
-        self.parent = None
+        # Joint parent 
+        self.jparent = None
 
         # Children (joints attached to this body)
-        self.joints = []
+        self.jchilds = []
 
-    def add_child(self, joint: Joint, child_body: Body, rb1: np.ndarray, rb2: np.ndarray):
-        """
-        Adds a child joint and body to the current body.
-        Parameters:
-            - joint (Joint): The joint connecting the current body to the child body.
-            - child_body (Body): The child body being added.
-            - rb1 (np.ndarray): The position vector of the joint connection point on the current body.
-            - rb2 (np.ndarray): The position vector of the joint connection point on the child body.
-        """
-        
-        joint.set_joint(self, child_body, rb1, rb2)
-        child_body.parent = self
-        self.joints.append(joint)
+        def dof_n(self):
+            # Returns the number of degrees of freedom of the body 
+            # and counts the number of bodies in the system
+            
+            # Base case (no children)
+            dof = 0
+            n = 1
+
+            # Recursive case
+            for joint in self.jchilds:
+                # Make recursive call   
+                dof_c, n_c = joint.b_child.dof()
+                dof += joint.dof + dof_c
+                n += n_c
+            return dof, n
 
 
 
 
 class Joint:
-    def __init__(self, name, 
+    def __init__(self, 
                  dof, sequence: str, 
-                 axis: np.ndarray, theta_lim: list = None):
-        self.name = name
+                 axis: np.ndarray, theta_lim: list[tuple] = None):
+        self.b_parent = None
+        self.b_child = None
 
         # Assert dof between 1 and 3
         assert dof >= 1 and dof <= 3, "Degree of freedom must be between 1 and 3 for a rotational joint"
@@ -64,9 +68,7 @@ class Joint:
 
         
 
-        self.body1 = None
         self.rb1 = None # Position of joint in body frame 1 
-        self.body2 = None
         self.rb2 = None # Position of joint in body frame 2
 
         # theta_lim is a list of tuples, each tuple containing the lower and upper limits of the joint
@@ -75,10 +77,9 @@ class Joint:
         for lim in theta_lim:
             assert len(lim) == 2, "Each joint limit must be a tuple of two elements"
             assert lim[0] <= lim[1], "Lower limit must be less than or equal to upper limit"
-        assert theta_lim[0] < theta_lim[1], "Joint limits must be in ascending order"
         self.theta_lim = theta_lim
 
-        self.T = np.zeros((dof, 3))   # Joint transformation matrix
+        self.PHI = np.zeros((3, dof))   # Joint transformation matrix
 
       
 
@@ -100,8 +101,34 @@ class Joint:
 
 
 
+def connect(joint: Joint, b_parent: Body, b_child: Body):
+    """
+    Connects a joint to two bodies.
+    Parameters:
+        - joint (Joint): The joint to connect.
+        - b_parent (Body): The parent body.
+        - b_child (Body): The child body.
+    """
+    joint.b_parent = b_parent
+    joint.b_child = b_child
+
+    b_parent.joints.append(joint)
+    
+    if b_child.jparent is not None:
+        b_child.parent = (b_parent,) + b_parent.jparent
+    else:
+        b_child.parent = (b_parent,)
+    
             
-def simulate(t, u: np.ndarray, body: Body):
+
+
+def evaluate_OM_V(root: Body, u: np.ndarray):
+    # Compute overall dof and number of bodies of the system
+    dof, n = root.dof() + 6 # 6 for the base body
+    # Initialize the overall OM and V matrices
+
+
+def simulate(t, u: np.ndarray, root: Body):
         """
         Simulates the body at time t with input u.
         Parameters:
@@ -115,8 +142,7 @@ def simulate(t, u: np.ndarray, body: Body):
 
 
         # Evaluate joint partials and their time derivatives
-        Ti = evaluate_joint_partials(body) # List of joint transformation matrices, one for each joint
-        T_dot = evaluate_joint_partials_dot(body) # List of joint transformation matrices, one for each joint
+        OM, V = evaluate_OM_V(root, u)
 
         # For each Bi, map {x, u} to {om1, vp1, x, RN2i*r_pi}
 
@@ -140,3 +166,4 @@ def simulate(t, u: np.ndarray, body: Body):
         # Use u to integrate also x to the next step, along with rp1
 
 
+def esploraTree(body: Body):
