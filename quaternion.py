@@ -108,7 +108,9 @@ class Quaternion:
         return self
 
     def toArray(self):
-        return np.array([self._q0] + list(self._q))
+        # Return the quaternion as a 4-element array column vector
+        ret =  np.hstack([self._q0, self._q])
+        return ret.reshape((4, 1))
 
 
 if __name__ == '__main__':
